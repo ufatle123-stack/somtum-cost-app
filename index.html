@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แซ่บนัว คำนวณต้นทุน - ส้มตำปูปลาร้า</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Prompt -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        papaya: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        },
+                        chili: {
+                            50: '#fef2f2',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        },
+                        limefresh: {
+                            500: '#84cc16',
+                            600: '#65a30d',
+                        },
+                        cream: '#fcfbfa'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Prompt', 'sans-serif'],
+                        display: ['Prompt', 'sans-serif'],
+                        num: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', 'Inter', sans-serif;
+            background-color: #fcfbfa;
+            color: #1f2937;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-orange-50/60 via-cream to-amber-50/40 pb-20">
+
+    <!-- ส่วนหัว (Header) -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-orange-100 shadow-xs">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-papaya-500 to-chili-600 text-white flex items-center justify-center text-xl shadow-md shadow-orange-500/20">
+                        <i class="fa-solid fa-mortar-pestle"></i>
+                    </div>
+                    <span class="font-display font-bold text-lg sm:text-xl text-gray-900 tracking-tight">
+                        แซ่บนัว <span class="text-papaya-600">Cost & Stock</span>
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium bg-orange-100 text-papaya-600 px-3 py-1.5 rounded-full">
+                        <i class="fa-solid fa-calculator"></i> ระบบคำนวณต้นทุน & สต็อก
+                    </span>
+                </div>
+            </div>
+
+            <!-- แถบสลับหน้า (Navigation Tabs) ระหว่างหน้าคำนวณต้นทุน และหน้าคลังสต็อกทั้งหมด -->
+            <div class="flex items-center gap-2 pb-3">
+                <button type="button" id="tab-btn-recipe" onclick="switchPage('recipe')"
+                    class="flex-1 py-2.5 px-4 rounded-xl font-display font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-papaya-500 text-white shadow-sm">
+                    <i class="fa-solid fa-utensils"></i>
+                    <span>สูตร & คำนวณต้นทุน</span>
+                </button>
+                <button type="button" id="tab-btn-stock" onclick="switchPage('stock')"
+                    class="flex-1 py-2.5 px-4 rounded-xl font-display font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-orange-50 text-gray-700 hover:bg-orange-100 border border-orange-200/70">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>คลังสต็อกทั้งหมด</span>
+                    <span id="nav-low-stock-badge" class="hidden px-2 py-0.5 text-[10px] font-bold rounded-full bg-chili-600 text-white">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- เนื้อหาหลักแบบคอลัมน์เดียว (Single Column) -->
+    <main class="max-w-2xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+
+        <!-- ==================== หน้าที่ 1: สูตร & คำนวณต้นทุน ==================== -->
+        <div id="page-recipe" class="space-y-6">
+
+            <!-- แถบเลือกเมนูอาหาร & ปุ่มเพิ่มเมนูใหม่ -->
+            <section class="bg-white rounded-2xl shadow-sm border border-orange-100/80 p-3.5 sm:p-4">
+                <div class="flex items-center justify-between gap-2 mb-2.5 px-1">
+                    <span class="text-xs font-display font-bold text-gray-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-book-open text-papaya-500"></i> เลือกเมนูที่ต้องการคำนวณสูตร:
+                    </span>
+                    <button type="button" onclick="openAddMenuModal()"
+                        class="px-3 py-1.5 rounded-xl bg-papaya-500 hover:bg-papaya-600 text-white font-display font-semibold text-xs shadow-xs flex items-center gap-1.5 transition-all active:scale-95">
+                        <i class="fa-solid fa-plus"></i> เพิ่มเมนูใหม่
+                    </button>
+                </div>
+                <div id="menu-selector-list" class="flex items-center gap-2 overflow-x-auto pb-1">
+                    <!-- รายการปุ่มเลือกเมนูสร้างผ่าน JavaScript -->
+                </div>
+            </section>
+
+            <!-- 1. การ์ดเมนูย่อยแรก: ข้อมูลเมนูที่เลือก และราคาต้นทุนรวมต่อจาน -->
+            <section class="bg-white rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100/80 overflow-hidden">
+                <div class="relative bg-gradient-to-r from-papaya-500 via-orange-500 to-chili-600 p-6 sm:p-8 text-white">
+                    <div class="absolute -right-6 -bottom-6 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                    <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                            <div id="hero-menu-emoji" class="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-xs border border-white/25 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+                                🥗
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[11px] font-medium">
+                                        <i class="fa-solid fa-fire text-amber-200"></i> สูตรคำนวณต้นทุนมาตรฐาน (1 จาน)
+                                    </span>
+                                    <button type="button" id="delete-current-menu-btn" onclick="deleteCurrentMenu()"
+                                        class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/25 hover:bg-black/40 text-white/90 text-[11px] transition-colors">
+                                        <i class="fa-solid fa-trash-can text-[10px]"></i> ลบเมนูนี้
+                                    </button>
+                                </div>
+                                <h1 id="hero-menu-title" class="font-display font-bold text-2xl sm:text-3xl tracking-tight">ส้มตำปูปลาร้า</h1>
+                                <p id="hero-menu-desc" class="text-xs sm:text-sm text-orange-100 leading-relaxed">
+                                    เส้นมะละกอสับกรอบคลุกเคล้าน้ำปลาร้าต้มสุกสูตรนัว ปูดองเค็มคัดพิเศษ และพริกสดจัดจ้าน
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white/15 backdrop-blur-xs border border-white/25 rounded-2xl px-4 py-3 sm:text-right shrink-0">
+                            <span class="text-[11px] font-medium text-orange-100 block">ต้นทุนวัตถุดิบรวม / จาน</span>
+                            <span id="hero-total-cost" class="font-display font-extrabold text-2xl sm:text-3xl text-white">฿28.25</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สรุปสถานะสต็อกในการ์ดบนสุด -->
+                <div class="p-4 sm:p-6 bg-orange-50/30">
+                    <div class="flex items-center justify-between text-xs font-medium text-gray-500 mb-2">
+                        <span>สถานะความพร้อมในการผลิต</span>
+                        <button type="button" onclick="switchPage('stock')" class="text-papaya-600 hover:underline font-semibold flex items-center gap-1">
+                            จัดการสต็อกทั้งหมด <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
+                    </div>
+                    <div class="bg-emerald-50/90 border border-emerald-200/80 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 text-xs text-emerald-900">
+                            <i class="fa-solid fa-boxes-stacked text-emerald-600 text-sm"></i>
+                            <span>สต็อกคงเหลือผลิตได้สูงสุด:</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="hero-max-servings" class="font-display font-bold text-base sm:text-lg text-emerald-700">15 จาน</span>
+                            <span id="hero-limiting-ing" class="text-[11px] text-emerald-700/80 block">(จำกัดโดย: ปูดองเค็มคัดพิเศษ)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. ส่วนหัวข้อหลัก "วัตถุดิบ" (Ingredient Cost Calculator) -->
+            <section class="bg-white rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100/80 p-5 sm:p-8">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-limefresh-500/15 text-limefresh-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-seedling"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-xl sm:text-2xl text-gray-900">วัตถุดิบ & ต้นทุนต่อจาน</h3>
+                            <p class="text-xs text-gray-500">ปรับปริมาณและราคาต่อหน่วย เพื่อคำนวณต้นทุนอาหารแบบเรียลไทม์</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="openAddModal()"
+                            class="px-3.5 py-2 rounded-xl bg-papaya-500 hover:bg-papaya-600 text-white font-display font-medium text-xs sm:text-sm shadow-sm flex items-center gap-1.5 transition-all active:scale-95">
+                            <i class="fa-solid fa-plus"></i> เพิ่มวัตถุดิบในสูตร
+                        </button>
+                        <button type="button" onclick="openResetModal()" title="รีเซ็ตค่าเริ่มต้น"
+                            class="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-chili-600 hover:border-chili-300 transition-colors">
+                            <i class="fa-solid fa-rotate-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ป้ายแสดงจำนวนรายการ -->
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">รายการวัตถุดิบในสูตร</span>
+                    <span id="ingredient-count-badge" class="text-xs font-bold text-papaya-600 bg-orange-100 px-2.5 py-0.5 rounded-full">9 รายการ</span>
+                </div>
+
+                <!-- รายการวัตถุดิบทั้งหมด -->
+                <div id="ingredients-list" class="space-y-3">
+                    <!-- สร้างผ่าน JavaScript -->
+                </div>
+            </section>
+
+            <!-- 3. ส่วนคำนวณต้นทุนผลิตจำนวนมาก และการตั้งราคาขาย -->
+            <section class="bg-white rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100/80 p-5 sm:p-8 space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-gray-100">
+                    <div class="w-10 h-10 rounded-2xl bg-orange-100 text-papaya-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-xl sm:text-2xl text-gray-900">สรุปต้นทุนผลิต & ตั้งราคาขาย</h3>
+                        <p class="text-xs text-gray-500">คำนวณต้นทุนเมื่อทำจำนวนมาก และแนวทางตั้งราคาขายเพื่อทำกำไร</p>
+                    </div>
+                </div>
+
+                <!-- ช่องเลือกจำนวนจานที่ต้องการผลิต -->
+                <div class="bg-orange-50/50 border border-orange-200/70 rounded-2xl p-4 sm:p-5 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <label class="font-display font-bold text-sm text-gray-900 block">จำนวนจานที่ต้องการผลิตรอบนี้:</label>
+                            <span class="text-xs text-gray-500">ระบบจะคูณปริมาณวัตถุดิบและต้นทุนรวมทั้งหมดทันที</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="changeBatchServings(-5)" class="w-9 h-9 rounded-xl bg-white border border-orange-200 text-gray-700 font-bold hover:bg-orange-100 transition-colors">-5</button>
+                            <button type="button" onclick="changeBatchServings(-1)" class="w-9 h-9 rounded-xl bg-white border border-orange-200 text-gray-700 font-bold hover:bg-orange-100 transition-colors">-1</button>
+                            <input type="number" id="batch-servings-input" min="1" value="1" oninput="setBatchServings(this.value)"
+                                class="w-16 py-1.5 rounded-xl border border-orange-300 bg-white font-num font-bold text-center text-base text-gray-900 focus:outline-none focus:border-papaya-500">
+                            <button type="button" onclick="changeBatchServings(1)" class="w-9 h-9 rounded-xl bg-white border border-orange-200 text-gray-700 font-bold hover:bg-orange-100 transition-colors">+1</button>
+                            <button type="button" onclick="changeBatchServings(5)" class="w-9 h-9 rounded-xl bg-white border border-orange-200 text-gray-700 font-bold hover:bg-orange-100 transition-colors">+5</button>
+                        </div>
+                    </div>
+
+                    <!-- ปุ่มลัดจำนวนจาน -->
+                    <div class="flex items-center gap-2 pt-1 flex-wrap">
+                        <span class="text-xs text-gray-500 font-medium">เลือกด่วน:</span>
+                        <button type="button" onclick="setBatchServings(1)" class="px-3 py-1 rounded-lg bg-white border border-orange-200 text-xs font-semibold text-gray-700 hover:bg-orange-100">1 จาน</button>
+                        <button type="button" onclick="setBatchServings(10)" class="px-3 py-1 rounded-lg bg-white border border-orange-200 text-xs font-semibold text-gray-700 hover:bg-orange-100">10 จาน</button>
+                        <button type="button" onclick="setBatchServings(30)" class="px-3 py-1 rounded-lg bg-white border border-orange-200 text-xs font-semibold text-gray-700 hover:bg-orange-100">30 จาน</button>
+                        <button type="button" onclick="setBatchServings(50)" class="px-3 py-1 rounded-lg bg-white border border-orange-200 text-xs font-semibold text-gray-700 hover:bg-orange-100">50 จาน</button>
+                    </div>
+
+                    <!-- แจ้งเตือนสถานะสต็อกและปุ่มตัดสต็อก -->
+                    <div id="batch-stock-alert" class="hidden pt-3 border-t border-orange-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div id="batch-stock-msg" class="text-xs font-semibold text-chili-600 flex items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>วัตถุดิบในสต็อกไม่เพียงพอสำหรับจำนวนจานที่เลือก!</span>
+                        </div>
+                        <button type="button" id="deduct-stock-btn" onclick="deductStockForBatch()" disabled
+                            class="px-4 py-2 rounded-xl bg-gray-300 text-gray-500 text-xs font-display font-bold cursor-not-allowed transition-all">
+                            <i class="fa-solid fa-boxes-packing mr-1"></i> ตัดสต็อกตามจำนวนผลิต
+                        </button>
+                    </div>
+                </div>
+
+                <!-- สรุปต้นทุนรวมและราคาแนะนำ -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-cream border border-orange-200/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-500 font-medium block mb-1">ต้นทุนรวมรอบนี้</span>
+                            <span id="batch-total-cost" class="font-display font-extrabold text-2xl sm:text-3xl text-chili-600">฿28.25</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-chili-50 text-chili-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-cream border border-orange-200/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-500 font-medium block mb-1">ราคาขายแนะนำ (กำไร 50%)</span>
+                            <span id="suggested-price-50" class="font-display font-extrabold text-2xl sm:text-3xl text-emerald-600">฿56.50</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-tags"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- จำลองการตั้งราคาขาย -->
+                <div class="bg-gray-50 border border-gray-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-display font-semibold text-sm text-gray-900">จำลองราคาขายหน้าร้านต่อจาน:</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-gray-500">฿</span>
+                            <input type="number" id="sim-price-input" min="0" value="65" oninput="updateCurrentMenuSalePrice(this.value)"
+                                class="w-24 px-3 py-1.5 rounded-xl border border-gray-300 bg-white font-num font-bold text-sm text-gray-900 text-right focus:outline-none focus:border-papaya-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 pt-2 border-t border-gray-200/60 text-center">
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-0.5">กำไรขั้นต้น/จาน</span>
+                            <span id="sim-profit-per-dish" class="font-display font-bold text-sm sm:text-base text-emerald-600">฿36.75</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-0.5">อัตรากำไร (%)</span>
+                            <span id="sim-profit-margin" class="font-display font-bold text-sm sm:text-base text-papaya-600">56.5%</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-medium text-gray-500 block">ตั้งราคาขาย</span>
+                            <span id="sim-sale-price" class="font-display font-bold text-base text-gray-900">฿65.00</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div> <!-- จบหน้าที่ 1: สูตร & คำนวณต้นทุน -->
+
+        <!-- ==================== หน้าที่ 2: คลังสต็อกวัตถุดิบทั้งหมด ==================== -->
+        <div id="page-stock" class="hidden space-y-6">
+
+            <!-- การ์ดสรุปภาพรวมคลังสต็อก -->
+            <section class="bg-white rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100/80 p-5 sm:p-7">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-warehouse"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-display font-bold text-xl sm:text-2xl text-gray-900">คลังสต็อกวัตถุดิบทั้งหมด</h2>
+                            <p class="text-xs text-gray-500">ตรวจสอบยอดคงเหลือ มูลค่าสต็อก และเติมของเข้าคลัง</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="openAddModal()"
+                        class="px-3.5 py-2 rounded-xl bg-papaya-500 hover:bg-papaya-600 text-white font-display font-medium text-xs sm:text-sm shadow-sm flex items-center gap-1.5 transition-all active:scale-95">
+                        <i class="fa-solid fa-plus"></i> เพิ่มวัตถุดิบใหม่
+                    </button>
+                </div>
+
+                <!-- สรุปตัวเลขสำคัญ 3 ช่อง -->
+                <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+                    <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 text-center">
+                        <span class="text-[11px] font-medium text-emerald-800 block mb-1">ผลิตได้สูงสุด</span>
+                        <span id="stock-page-max-servings" class="font-display font-bold text-lg sm:text-2xl text-emerald-700">15 จาน</span>
+                    </div>
+                    <div class="bg-orange-50/80 border border-orange-200/80 rounded-2xl p-3 sm:p-4 text-center">
+                        <span class="text-[11px] font-medium text-gray-700 block mb-1">มูลค่าสต็อกรวม</span>
+                        <span id="stock-page-total-value" class="font-display font-bold text-lg sm:text-2xl text-papaya-600">฿0.00</span>
+                    </div>
+                    <div class="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3 sm:p-4 text-center">
+                        <span class="text-[11px] font-medium text-amber-900 block mb-1">ใกล้หมด / หมด</span>
+                        <span id="stock-page-low-count" class="font-display font-bold text-lg sm:text-2xl text-chili-600">0 รายการ</span>
+                    </div>
+                </div>
+
+                <!-- ช่องค้นหาและตัวกรองสถานะสต็อก -->
+                <div class="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-2.5">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="stock-search-input" oninput="renderStockPage()" placeholder="ค้นหาชื่อวัตถุดิบ..."
+                            class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl shrink-0">
+                        <button type="button" id="filter-stock-all" onclick="setStockFilter('all')"
+                            class="px-3 py-1.5 rounded-lg text-xs font-display font-semibold bg-white text-gray-900 shadow-2xs transition-all">ทั้งหมด</button>
+                        <button type="button" id="filter-stock-low" onclick="setStockFilter('low')"
+                            class="px-3 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-600 hover:text-gray-900 transition-all">ใกล้หมด/หมด</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- รายการสต็อกวัตถุดิบทั้งหมด -->
+            <section class="bg-white rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100/80 p-5 sm:p-7">
+                <div id="stock-page-list" class="space-y-3">
+                    <!-- รายการสต็อกสร้างผ่าน JavaScript -->
+                </div>
+            </section>
+
+        </div> <!-- จบหน้าที่ 2: คลังสต็อกวัตถุดิบทั้งหมด -->
+
+    </main>
+
+    <!-- ==================== โมดอล: เพิ่มเมนูอาหารใหม่ ==================== -->
+    <div id="add-menu-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-orange-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 class="font-display font-bold text-lg text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-utensils text-papaya-500"></i> สร้างเมนูอาหารใหม่
+                </h3>
+                <button type="button" onclick="closeAddMenuModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleAddMenu(event)" class="space-y-3.5">
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="col-span-3">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">ชื่อเมนูใหม่</label>
+                        <input type="text" id="new-menu-name" required placeholder="เช่น ตำไทย, ตำข้าวโพดไข่เค็ม"
+                            class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">ไอคอน</label>
+                        <input type="text" id="new-menu-emoji" value="🌶️" maxlength="2"
+                            class="w-full px-2 py-2 rounded-xl border border-gray-300 text-sm text-center focus:outline-none focus:border-papaya-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">คำอธิบายเมนู</label>
+                    <input type="text" id="new-menu-desc" placeholder="เช่น รสชาติเปรี้ยวหวานกลมกล่อม ถั่วลิสงคั่วหอม"
+                        class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">ตั้งราคาขายหน้าร้านเริ่มต้น (บาท)</label>
+                    <input type="number" step="any" min="0" id="new-menu-sale-price" required value="60"
+                        class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                </div>
+
+                <div class="bg-orange-50/70 border border-orange-200/70 rounded-2xl p-3">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="new-menu-copy-base" checked class="mt-0.5 rounded text-papaya-500 focus:ring-papaya-500">
+                        <span class="text-xs text-gray-700 leading-relaxed">
+                            <strong>คัดลอกวัตถุดิบพื้นฐานจากส้มตำปูปลาร้า</strong> (เช่น มะละกอ พริก มะนาว มะเขือเทศ) เพื่อให้ปรับแก้ไขสูตรได้รวดเร็วขึ้น
+                        </span>
+                    </label>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeAddMenuModal()" class="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-papaya-500 hover:bg-papaya-600 text-white text-xs font-display font-bold shadow-sm">สร้างเมนูใหม่</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== โมดอล: เพิ่มวัตถุดิบเข้าสูตร / คลัง ==================== -->
+    <div id="add-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-orange-100 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 class="font-display font-bold text-lg text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-papaya-500"></i> เพิ่มวัตถุดิบ
+                </h3>
+                <button type="button" onclick="closeAddModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <!-- สลับโหมด: เลือกจากคลังที่มีอยู่แล้ว หรือ สร้างวัตถุดิบใหม่เข้าคลัง -->
+            <div class="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+                <button type="button" id="add-ing-mode-existing" onclick="setAddIngMode('existing')"
+                    class="flex-1 py-1.5 rounded-lg text-xs font-display font-semibold bg-white text-gray-900 shadow-2xs transition-all">เลือกจากคลังที่มีอยู่</button>
+                <button type="button" id="add-ing-mode-new" onclick="setAddIngMode('new')"
+                    class="flex-1 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-600 hover:text-gray-900 transition-all">+ สร้างวัตถุดิบใหม่เข้าคลัง</button>
+            </div>
+
+            <!-- ฟอร์ม 1: เลือกวัตถุดิบที่มีในคลังสต็อกเข้าสูตรเมนูนี้ -->
+            <form id="form-existing-ing" onsubmit="handleAddExistingIngredient(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">เลือกวัตถุดิบจากคลังสต็อก</label>
+                    <select id="existing-ing-select" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500 bg-white">
+                        <!-- สร้างตัวเลือกผ่าน JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">ปริมาณที่ใช้ต่อ 1 จาน</label>
+                    <input type="number" step="any" min="0" id="existing-ing-qty" required value="20"
+                        class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                </div>
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-papaya-500 hover:bg-papaya-600 text-white text-xs font-display font-bold shadow-sm">เพิ่มเข้าสูตรเมนู</button>
+                </div>
+            </form>
+
+            <!-- ฟอร์ม 2: สร้างวัตถุดิบใหม่เข้าคลังและเพิ่มเข้าสูตร -->
+            <form id="form-new-ing" onsubmit="handleAddIngredient(event)" class="space-y-3.5 hidden">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">ชื่อวัตถุดิบใหม่</label>
+                    <input type="text" id="new-name" required placeholder="เช่น กุ้งแห้ง, ถั่วลิสงคั่ว, ไข่เค็ม"
+                        class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">ปริมาณต่อจาน</label>
+                        <input type="number" step="any" min="0" id="new-qty" required value="15"
+                            class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">หน่วย (เช่น กรัม, ฟอง)</label>
+                        <input type="text" id="new-unit" required value="กรัม"
+                            class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">ราคา/กก. หรือ ต่อหน่วย (฿)</label>
+                        <input type="number" step="any" min="0" id="new-price" required value="120"
+                            class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">สต็อกเริ่มต้นในคลัง</label>
+                        <input type="number" step="any" min="0" id="new-stock" required value="500"
+                            class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">ไอคอนอีโมจิ</label>
+                        <input type="text" id="new-emoji" value="🥜" maxlength="2"
+                            class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm text-center focus:outline-none focus:border-papaya-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">สีพื้นหลังไอคอน</label>
+                        <select id="new-bg" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500 bg-white">
+                            <option value="bg-orange-50">ส้มอ่อน</option>
+                            <option value="bg-emerald-50">เขียวอ่อน</option>
+                            <option value="bg-amber-50">เหลืองอ่อน</option>
+                            <option value="bg-rose-50">แดงอ่อน</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">รายละเอียดเพิ่มเติม</label>
+                    <input type="text" id="new-detail" placeholder="เช่น คัดเกรดพิเศษ สดใหม่"
+                        class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-papaya-500">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-papaya-500 hover:bg-papaya-600 text-white text-xs font-display font-bold shadow-sm">บันทึกและเพิ่มวัตถุดิบ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== โมดอล: ยืนยันรีเซ็ตค่า ==================== -->
+    <div id="reset-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-orange-100 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div class="w-12 h-12 rounded-full bg-chili-50 text-chili-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="font-display font-bold text-lg text-gray-900">ยืนยันรีเซ็ตสูตรเริ่มต้น?</h3>
+                <p class="text-xs text-gray-500 mt-1">ข้อมูลปริมาณ ราคา และสต็อกทั้งหมดจะกลับคืนสู่ค่าเริ่มต้นของเมนูส้มตำปูปลาร้า</p>
+            </div>
+            <div class="flex items-center justify-center gap-2 pt-2">
+                <button type="button" onclick="closeResetModal()" class="flex-1 py-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50">ยกเลิก</button>
+                <button type="button" onclick="executeReset()" class="flex-1 py-2 rounded-xl bg-chili-600 hover:bg-chili-700 text-white text-xs font-display font-bold shadow-sm">ยืนยันรีเซ็ต</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- จาวาสคริปต์การทำงานทั้งหมด -->
+    <script>
+        // คลังวัตถุดิบกลางทั้งหมด (Master Stock Inventory - ใช้ร่วมกันทุกเมนู)
+        const DEFAULT_STOCK_ITEMS = [
+            { id: 1, name: 'มะละกอสับเส้นกรอบ', detail: 'มะละกอดิบสด คัดความกรอบพิเศษ', unit: 'กรัม', priceUnit: 'กก.', unitFactor: 1000, unitPrice: 50.00, stock: 2000, emoji: '🥗', bg: 'bg-emerald-50' },
+            { id: 2, name: 'น้ำปลาร้าต้มสุกสูตรนัว', detail: 'ปรุงรสเข้มข้น หอมนัว สะอาด', unit: 'มล.', priceUnit: 'มล.', unitFactor: 1, unitPrice: 0.15, stock: 1000, emoji: '🏺', bg: 'bg-amber-50' },
+            { id: 3, name: 'ปูดองเค็มคัดพิเศษ', detail: 'ปูนาสะอาด ดองเค็มกำลังดี เนื้อแน่น', unit: 'กรัม', priceUnit: 'กก.', unitFactor: 1000, unitPrice: 175.00, stock: 1000, emoji: '🦀', bg: 'bg-rose-50' },
+            { id: 4, name: 'พริกขี้หนูสวน & พริกแดงจินดา', detail: 'ความเผ็ดแซ่บหอมพริกสดใหม่', unit: 'เม็ด', priceUnit: 'เม็ด', unitFactor: 1, unitPrice: 0.20, stock: 300, emoji: '🌶️', bg: 'bg-chili-50' },
+            { id: 5, name: 'มะเขือเทศสีดา', detail: 'หั่นชิ้น สดฉ่ำ', unit: 'กรัม', priceUnit: 'กก.', unitFactor: 1000, unitPrice: 50.00, stock: 800, emoji: '🍅', bg: 'bg-rose-50' },
+            { id: 6, name: 'มะนาวแป้นสด', detail: 'คั้นสดหอมกลิ่นมะนาวแท้', unit: 'มล.', priceUnit: 'มล.', unitFactor: 1, unitPrice: 0.12, stock: 500, emoji: '🍋', bg: 'bg-limefresh-500/15' },
+            { id: 7, name: 'ถั่วฝักยาวสด', detail: 'หั่นท่อนกรอบหวาน', unit: 'กรัม', priceUnit: 'กก.', unitFactor: 1000, unitPrice: 60.00, stock: 400, emoji: '🟢', bg: 'bg-emerald-50' },
+            { id: 8, name: 'กระเทียมไทยกลีบเล็ก', detail: 'ตำหอมกลิ่นกระเทียมไทยแท้', unit: 'กรัม', priceUnit: 'กก.', unitFactor: 1000, unitPrice: 100.00, stock: 300, emoji: '🧄', bg: 'bg-orange-50' },
+            { id: 9, name: 'น้ำตาลปี๊บแท้', detail: 'ตัดรสกลมกล่อม หอมหวานธรรมชาติ', unit: 'กรัม', priceUnit: 'กก.', unitFactor: 1000, unitPrice: 80.00, stock: 600, emoji: '🍯', bg: 'bg-amber-50' }
+        ];
+
+        // รายการเมนูทั้งหมดและสูตรของแต่ละเมนู
+        const DEFAULT_MENUS = [
+            {
+                id: 'menu-1',
+                name: 'ส้มตำปูปลาร้า',
+                emoji: '🥗',
+                desc: 'เส้นมะละกอสับกรอบคลุกเคล้าน้ำปลาร้าต้มสุกสูตรนัว ปูดองเค็มคัดพิเศษ และพริกสดจัดจ้าน',
+                salePrice: 65,
+                recipe: [
+                    { ingId: 1, qty: 120 },
+                    { ingId: 2, qty: 40 },
+                    { ingId: 3, qty: 60 },
+                    { ingId: 4, qty: 10 },
+                    { ingId: 5, qty: 40 },
+                    { ingId: 6, qty: 25 },
+                    { ingId: 7, qty: 20 },
+                    { ingId: 8, qty: 15 },
+                    { ingId: 9, qty: 15 }
+                ]
+            }
+        ];
+
+        function getUnitConversion(item) {
+            if (item.unitFactor && item.priceUnit) {
+                return { factor: item.unitFactor, priceUnit: item.priceUnit };
+            }
+            if (item.unit === 'กรัม') {
+                return { factor: 1000, priceUnit: 'กก.' };
+            }
+            return { factor: 1, priceUnit: item.unit };
+        }
+
+        let stockItems = [];
+        let menus = [];
+        let currentMenuId = 'menu-1';
+        let batchServings = 1;
+        let nextIngId = 10;
+        let nextMenuNum = 2;
+        let currentPage = 'recipe';
+        let stockFilter = 'all';
+
+        // ดึงข้อมูลเมนูที่กำลังเลือกอยู่
+        function getCurrentMenu() {
+            return menus.find(m => m.id === currentMenuId) || menus[0];
+        }
+
+        // เริ่มต้นทำงานเมื่อโหลดหน้าเว็บ
+        window.addEventListener('DOMContentLoaded', () => {
+            stockItems = JSON.parse(JSON.stringify(DEFAULT_STOCK_ITEMS));
+            menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
+            currentMenuId = menus[0].id;
+            renderMenuSelector();
+            renderIngredients();
+            renderStockPage();
+            calculateAll();
+        });
+
+        // แสดงแถบปุ่มเลือกเมนูด้านบน
+        function renderMenuSelector() {
+            const listEl = document.getElementById('menu-selector-list');
+            if (!listEl) return;
+
+            listEl.innerHTML = menus.map(m => {
+                const isActive = m.id === currentMenuId;
+                const btnClass = isActive
+                    ? 'bg-papaya-500 text-white border-papaya-500 shadow-xs'
+                    : 'bg-orange-50/70 text-gray-700 border-orange-200/70 hover:bg-orange-100';
+                return `
+                    <button type="button" onclick="selectMenu('${m.id}')"
+                        class="px-3.5 py-2 rounded-xl border font-display font-semibold text-xs sm:text-sm flex items-center gap-2 shrink-0 transition-all ${btnClass}">
+                        <span>${m.emoji || '🥗'}</span>
+                        <span>${escapeHtml(m.name)}</span>
+                    </button>
+                `;
+            }).join('');
+
+            // อัปเดตการ์ดหลักของเมนูที่เลือก
+            const activeMenu = getCurrentMenu();
+            if (activeMenu) {
+                document.getElementById('hero-menu-emoji').textContent = activeMenu.emoji || '🥗';
+                document.getElementById('hero-menu-title').textContent = activeMenu.name;
+                document.getElementById('hero-menu-desc').textContent = activeMenu.desc || 'สูตรคำนวณต้นทุนมาตรฐาน';
+                document.getElementById('sim-price-input').value = activeMenu.salePrice ?? 65;
+
+                const delBtn = document.getElementById('delete-current-menu-btn');
+                if (delBtn) {
+                    if (menus.length > 1) {
+                        delBtn.classList.remove('hidden');
+                    } else {
+                        delBtn.classList.add('hidden');
+                    }
+                }
+            }
+        }
+
+        // สลับเลือกเมนูอาหาร
+        function selectMenu(menuId) {
+            currentMenuId = menuId;
+            batchServings = 1;
+            const batchInput = document.getElementById('batch-servings-input');
+            if (batchInput) batchInput.value = 1;
+            renderMenuSelector();
+            renderIngredients();
+            calculateAll();
+        }
+
+        // เปิด-ปิด โมดอลเพิ่มเมนูใหม่
+        function openAddMenuModal() {
+            document.getElementById('add-menu-modal').classList.remove('hidden');
+        }
+        function closeAddMenuModal() {
+            document.getElementById('add-menu-modal').classList.add('hidden');
+        }
+        function handleAddMenu(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-menu-name').value.trim();
+            const emoji = document.getElementById('new-menu-emoji').value.trim() || '🌶️';
+            const desc = document.getElementById('new-menu-desc').value.trim() || 'เมนูแซ่บนัวสูตรพิเศษประจำร้าน';
+            const salePrice = parseFloat(document.getElementById('new-menu-sale-price').value) || 60;
+            const copyBase = document.getElementById('new-menu-copy-base').checked;
+
+            if (!name) return;
+
+            const newMenuId = `menu-${nextMenuNum++}`;
+            // คัดลอกวัตถุดิบพื้นฐาน (มะละกอ พริก มะเขือเทศ มะนาว ถั่วฝักยาว กระเทียม น้ำตาลปี๊บ) หรือเริ่มจากสูตรว่าง
+            const baseRecipe = copyBase
+                ? [
+                    { ingId: 1, qty: 120 },
+                    { ingId: 4, qty: 8 },
+                    { ingId: 5, qty: 40 },
+                    { ingId: 6, qty: 25 },
+                    { ingId: 7, qty: 20 },
+                    { ingId: 8, qty: 15 },
+                    { ingId: 9, qty: 15 }
+                ].filter(r => stockItems.some(s => s.id === r.ingId))
+                : [];
+
+            menus.push({
+                id: newMenuId,
+                name,
+                emoji,
+                desc,
+                salePrice,
+                recipe: baseRecipe
+            });
+
+            e.target.reset();
+            closeAddMenuModal();
+            selectMenu(newMenuId);
+        }
+
+        // ลบเมนูที่กำลังเลือกอยู่ (เมื่อมีมากกว่า 1 เมนู)
+        function deleteCurrentMenu() {
+            if (menus.length <= 1) return;
+            menus = menus.filter(m => m.id !== currentMenuId);
+            selectMenu(menus[0].id);
+        }
+
+        // บันทึกราคาขายหน้าร้านที่จำลองไว้ลงในเมนูปัจจุบัน
+        function updateCurrentMenuSalePrice(val) {
+            const activeMenu = getCurrentMenu();
+            if (activeMenu) {
+                activeMenu.salePrice = parseFloat(val) || 0;
+            }
+            calculateAll();
+        }
+
+        // สลับหน้าแสดงผลระหว่าง 'recipe' และ 'stock'
+        function switchPage(page) {
+            currentPage = page;
+            const recipePage = document.getElementById('page-recipe');
+            const stockPage = document.getElementById('page-stock');
+            const btnRecipe = document.getElementById('tab-btn-recipe');
+            const btnStock = document.getElementById('tab-btn-stock');
+
+            if (page === 'recipe') {
+                recipePage.classList.remove('hidden');
+                stockPage.classList.add('hidden');
+                btnRecipe.className = 'flex-1 py-2.5 px-4 rounded-xl font-display font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-papaya-500 text-white shadow-sm';
+                btnStock.className = 'flex-1 py-2.5 px-4 rounded-xl font-display font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-orange-50 text-gray-700 hover:bg-orange-100 border border-orange-200/70';
+                renderIngredients();
+            } else {
+                recipePage.classList.add('hidden');
+                stockPage.classList.remove('hidden');
+                btnStock.className = 'flex-1 py-2.5 px-4 rounded-xl font-display font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-emerald-600 text-white shadow-sm';
+                btnRecipe.className = 'flex-1 py-2.5 px-4 rounded-xl font-display font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-orange-50 text-gray-700 hover:bg-orange-100 border border-orange-200/70';
+                renderStockPage();
+            }
+            calculateAll();
+        }
+
+        function setStockFilter(filterType) {
+            stockFilter = filterType;
+            const btnAll = document.getElementById('filter-stock-all');
+            const btnLow = document.getElementById('filter-stock-low');
+            if (filterType === 'all') {
+                btnAll.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-semibold bg-white text-gray-900 shadow-2xs transition-all';
+                btnLow.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-600 hover:text-gray-900 transition-all';
+            } else {
+                btnLow.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-semibold bg-white text-chili-600 shadow-2xs transition-all';
+                btnAll.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-600 hover:text-gray-900 transition-all';
+            }
+            renderStockPage();
+        }
+
+        // สร้างรายการวัตถุดิบของเมนูที่เลือกอยู่
+        function renderIngredients() {
+            const container = document.getElementById('ingredients-list');
+            const countBadge = document.getElementById('ingredient-count-badge');
+            const activeMenu = getCurrentMenu();
+            if (!container || !activeMenu) return;
+
+            const recipeItems = activeMenu.recipe
+                .map(r => {
+                    const stockObj = stockItems.find(s => s.id === r.ingId);
+                    return stockObj ? { ...stockObj, qty: r.qty } : null;
+                })
+                .filter(Boolean);
+
+            countBadge.textContent = `${recipeItems.length} รายการ`;
+
+            if (recipeItems.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 px-4 border-2 border-dashed border-gray-200 rounded-2xl">
+                        <p class="text-gray-500 text-sm mb-3">ยังไม่มีรายการวัตถุดิบในสูตร "${escapeHtml(activeMenu.name)}"</p>
+                        <button type="button" onclick="openAddModal()" class="px-4 py-2 rounded-xl bg-papaya-500 text-white text-xs font-display font-medium">
+                            + เพิ่มวัตถุดิบเข้าสูตรนี้
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = recipeItems.map((item, index) => {
+                const { factor, priceUnit } = getUnitConversion(item);
+                const lineTotal = ((parseFloat(item.qty) || 0) / factor) * (parseFloat(item.unitPrice) || 0);
+
+                return `
+                    <div class="group rounded-2xl border border-gray-200/80 hover:border-orange-300 bg-cream/40 hover:bg-white p-3.5 sm:p-4 transition-all shadow-2xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                <div class="w-10 h-10 rounded-xl ${item.bg || 'bg-orange-50'} flex items-center justify-center text-xl shrink-0 border border-black/5">
+                                    ${item.emoji || '🥗'}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-num font-bold text-gray-400">#${index + 1}</span>
+                                        <h4 class="font-display font-semibold text-sm sm:text-base text-gray-900 truncate">${escapeHtml(item.name)}</h4>
+                                    </div>
+                                    ${item.detail ? `<p class="text-xs text-gray-500 truncate mt-0.5">${escapeHtml(item.detail)}</p>` : ''}
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] font-medium text-gray-500 mb-0.5">ปริมาณ (${escapeHtml(item.unit)})</label>
+                                    <input type="number" step="any" min="0" value="${item.qty}"
+                                        oninput="updateRecipeQty(${item.id}, this.value)"
+                                        class="w-20 sm:w-22 px-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-num font-semibold text-sm text-gray-900 text-right focus:outline-none focus:border-papaya-500 focus:ring-2 focus:ring-papaya-500/20">
+                                </div>
+
+                                <span class="text-gray-400 font-bold text-xs pt-3.5">×</span>
+
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] font-medium text-gray-500 mb-0.5">ราคา/${escapeHtml(priceUnit)} (฿)</label>
+                                    <input type="number" step="any" min="0" value="${item.unitPrice}"
+                                        oninput="updateStockItem(${item.id}, 'unitPrice', this.value)"
+                                        class="w-20 sm:w-22 px-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-num font-semibold text-sm text-gray-900 text-right focus:outline-none focus:border-papaya-500 focus:ring-2 focus:ring-papaya-500/20">
+                                </div>
+
+                                <div class="flex flex-col items-end min-w-[72px] pl-1">
+                                    <span class="text-[10px] font-medium text-gray-500 mb-0.5">ต้นทุนรวม</span>
+                                    <span id="item-total-${item.id}" class="font-display font-bold text-sm sm:text-base text-chili-600 py-1">
+                                        ฿${lineTotal.toFixed(2)}
+                                    </span>
+                                </div>
+
+                                <button type="button" onclick="removeRecipeIngredient(${item.id})" title="นำออกจากสูตรเมนูนี้"
+                                    class="ml-1 w-8 h-8 rounded-xl text-gray-400 hover:text-chili-600 hover:bg-chili-50 flex items-center justify-center transition-colors shrink-0">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // สร้างรายการหน้าคลังสต็อกวัตถุดิบทั้งหมด
+        function renderStockPage() {
+            const listEl = document.getElementById('stock-page-list');
+            const activeMenu = getCurrentMenu();
+            if (!listEl || !activeMenu) return;
+
+            const searchTerm = (document.getElementById('stock-search-input')?.value || '').trim().toLowerCase();
+
+            const filtered = stockItems.filter(item => {
+                const matchName = item.name.toLowerCase().includes(searchTerm) || (item.detail && item.detail.toLowerCase().includes(searchTerm));
+                if (!matchName) return false;
+
+                const recipeEntry = activeMenu.recipe.find(r => r.ingId === item.id);
+                const qtyPerDish = recipeEntry ? (parseFloat(recipeEntry.qty) || 0) : 0;
+
+                if (stockFilter === 'low') {
+                    const stock = parseFloat(item.stock) || 0;
+                    if (qtyPerDish > 0) {
+                        return Math.floor(stock / qtyPerDish) <= 5;
+                    }
+                    return stock <= 0;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-10 px-4 border-2 border-dashed border-gray-200 rounded-2xl">
+                        <p class="text-gray-500 text-sm">ไม่พบรายการวัตถุดิบที่ตรงกับเงื่อนไข</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => {
+                const { factor, priceUnit } = getUnitConversion(item);
+                const recipeEntry = activeMenu.recipe.find(r => r.ingId === item.id);
+                const qtyPerDish = recipeEntry ? (parseFloat(recipeEntry.qty) || 0) : 0;
+                const currentStock = parseFloat(item.stock) || 0;
+                const unitPrice = parseFloat(item.unitPrice) || 0;
+                const stockValue = (currentStock / factor) * unitPrice;
+                const possibleServings = qtyPerDish > 0 ? Math.floor(currentStock / qtyPerDish) : Infinity;
+
+                let statusBadge = '';
+                let cardBorder = 'border-gray-200/80';
+                if (currentStock <= 0 || (qtyPerDish > 0 && currentStock < qtyPerDish)) {
+                    statusBadge = `<span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>หมดสต็อก (0 จาน)</span>`;
+                    cardBorder = 'border-red-300 bg-red-50/20';
+                } else if (possibleServings <= 5) {
+                    statusBadge = `<span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200"><i class="fa-solid fa-circle-exclamation mr-1"></i>ใกล้หมด (ทำได้ ${possibleServings} จาน)</span>`;
+                    cardBorder = 'border-amber-300 bg-amber-50/20';
+                } else {
+                    const displayServings = possibleServings === Infinity ? 'ไม่ได้ใช้ในเมนูนี้' : `ทำได้ ${possibleServings.toLocaleString()} จาน`;
+                    statusBadge = `<span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i>พร้อมใช้ (${displayServings})</span>`;
+                }
+
+                return `
+                    <div class="rounded-2xl border ${cardBorder} bg-cream/30 hover:bg-white p-4 transition-all shadow-2xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                <div class="w-11 h-11 rounded-xl ${item.bg || 'bg-orange-50'} flex items-center justify-center text-2xl shrink-0 border border-black/5">
+                                    ${item.emoji || '🥗'}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h4 class="font-display font-bold text-base text-gray-900">${escapeHtml(item.name)}</h4>
+                                        ${statusBadge}
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        ใช้ในเมนู "${escapeHtml(activeMenu.name)}": <span class="font-num font-semibold text-gray-700">${qtyPerDish} ${escapeHtml(item.unit)}</span>
+                                        <span class="mx-1.5 text-gray-300">|</span>
+                                        มูลค่าในคลัง: <span id="stock-val-${item.id}" class="font-num font-semibold text-papaya-600">฿${stockValue.toFixed(2)}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] font-semibold text-gray-600 mb-0.5">ราคา/${escapeHtml(priceUnit)} (฿)</label>
+                                    <input type="number" step="any" min="0" value="${item.unitPrice}"
+                                        oninput="updateStockItem(${item.id}, 'unitPrice', this.value)"
+                                        class="w-20 px-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-num font-bold text-sm text-gray-900 text-right focus:outline-none focus:border-papaya-500 focus:ring-2 focus:ring-papaya-500/20">
+                                </div>
+
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] font-semibold text-emerald-700 mb-0.5">คงเหลือ (${escapeHtml(item.unit)})</label>
+                                    <input type="number" step="any" min="0" value="${item.stock}"
+                                        oninput="updateStockItem(${item.id}, 'stock', this.value)"
+                                        class="w-24 px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50/40 font-num font-bold text-sm text-emerald-900 text-right focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
+                                </div>
+
+                                <div class="flex items-center gap-1 pt-3.5">
+                                    <button type="button" onclick="quickRestock(${item.id}, 10)"
+                                        class="px-2.5 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-num font-bold transition-colors">
+                                        +10
+                                    </button>
+                                    <button type="button" onclick="quickRestock(${item.id}, 50)"
+                                        class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-num font-bold transition-colors">
+                                        +50
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // อัปเดตปริมาณวัตถุดิบในสูตรของเมนูปัจจุบัน
+        function updateRecipeQty(ingId, rawValue) {
+            const activeMenu = getCurrentMenu();
+            if (!activeMenu) return;
+            const entry = activeMenu.recipe.find(r => r.ingId === ingId);
+            const stockObj = stockItems.find(s => s.id === ingId);
+            if (!entry || !stockObj) return;
+
+            const numVal = parseFloat(rawValue);
+            entry.qty = isNaN(numVal) || numVal < 0 ? 0 : numVal;
+
+            const { factor } = getUnitConversion(stockObj);
+            const lineTotal = (entry.qty / factor) * (parseFloat(stockObj.unitPrice) || 0);
+            const lineEl = document.getElementById(`item-total-${ingId}`);
+            if (lineEl) {
+                lineEl.textContent = `฿${lineTotal.toFixed(2)}`;
+            }
+            calculateAll();
+        }
+
+        // อัปเดตราคาต่อหน่วย หรือ สต็อกคงเหลือ ในคลังกลาง
+        function updateStockItem(ingId, field, rawValue) {
+            const target = stockItems.find(item => item.id === ingId);
+            if (!target) return;
+
+            const numVal = parseFloat(rawValue);
+            target[field] = isNaN(numVal) || numVal < 0 ? 0 : numVal;
+
+            const { factor } = getUnitConversion(target);
+            const activeMenu = getCurrentMenu();
+            const entry = activeMenu ? activeMenu.recipe.find(r => r.ingId === ingId) : null;
+
+            if (entry) {
+                const lineTotal = ((parseFloat(entry.qty) || 0) / factor) * (parseFloat(target.unitPrice) || 0);
+                const lineEl = document.getElementById(`item-total-${ingId}`);
+                if (lineEl) lineEl.textContent = `฿${lineTotal.toFixed(2)}`;
+            }
+
+            const stockValEl = document.getElementById(`stock-val-${ingId}`);
+            if (stockValEl) {
+                const stockValue = ((parseFloat(target.stock) || 0) / factor) * (parseFloat(target.unitPrice) || 0);
+                stockValEl.textContent = `฿${stockValue.toFixed(2)}`;
+            }
+
+            calculateAll();
+        }
+
+        function quickRestock(id, amount = 10) {
+            const target = stockItems.find(item => item.id === id);
+            if (!target) return;
+            target.stock = (parseFloat(target.stock) || 0) + amount;
+            if (currentPage === 'stock') {
+                renderStockPage();
+            } else {
+                renderIngredients();
+            }
+            calculateAll();
+        }
+
+        function deductStockForBatch() {
+            const activeMenu = getCurrentMenu();
+            if (!activeMenu) return;
+
+            const shortages = activeMenu.recipe.filter(r => {
+                const stockObj = stockItems.find(s => s.id === r.ingId);
+                return stockObj && ((parseFloat(r.qty) || 0) * batchServings) > (parseFloat(stockObj.stock) || 0);
+            });
+            if (shortages.length > 0) return;
+
+            activeMenu.recipe.forEach(r => {
+                const stockObj = stockItems.find(s => s.id === r.ingId);
+                if (stockObj) {
+                    const used = (parseFloat(r.qty) || 0) * batchServings;
+                    const remaining = Math.max(0, (parseFloat(stockObj.stock) || 0) - used);
+                    stockObj.stock = Number(remaining.toFixed(4));
+                }
+            });
+
+            renderIngredients();
+            renderStockPage();
+            calculateAll();
+        }
+
+        // นำวัตถุดิบออกจากสูตรเมนูปัจจุบัน (โดยไม่ลบออกจากคลังสต็อกกลาง)
+        function removeRecipeIngredient(ingId) {
+            const activeMenu = getCurrentMenu();
+            if (!activeMenu) return;
+            activeMenu.recipe = activeMenu.recipe.filter(r => r.ingId !== ingId);
+            renderIngredients();
+            renderStockPage();
+            calculateAll();
+        }
+
+        function setBatchServings(val) {
+            const num = parseInt(val);
+            batchServings = isNaN(num) || num < 1 ? 1 : num;
+            const input = document.getElementById('batch-servings-input');
+            if (input && input.value != batchServings) {
+                input.value = batchServings;
+            }
+            calculateAll();
+        }
+
+        function changeBatchServings(amount) {
+            setBatchServings(batchServings + amount);
+        }
+
+        // คำนวณราคาต้นทุนทั้งหมดของเมนูที่เลือก และอัปเดตภาพรวมสต็อก
+        function calculateAll() {
+            const activeMenu = getCurrentMenu();
+            if (!activeMenu) return;
+
+            let totalCostPerDish = 0;
+            activeMenu.recipe.forEach(r => {
+                const stockObj = stockItems.find(s => s.id === r.ingId);
+                if (stockObj) {
+                    const { factor } = getUnitConversion(stockObj);
+                    const q = parseFloat(r.qty) || 0;
+                    const p = parseFloat(stockObj.unitPrice) || 0;
+                    totalCostPerDish += (q / factor) * p;
+                }
+            });
+
+            const heroTotalEl = document.getElementById('hero-total-cost');
+            if (heroTotalEl) {
+                heroTotalEl.textContent = `฿${totalCostPerDish.toFixed(2)}`;
+            }
+
+            // คำนวณจำนวนจานสูงสุดที่ผลิตได้ของเมนูปัจจุบัน และมูลค่าสต็อกรวมทั้งหมดในคลัง
+            let maxServings = Infinity;
+            let limitingIngName = '';
+            let totalStockValue = 0;
+            let lowStockItemsCount = 0;
+
+            stockItems.forEach(item => {
+                const { factor } = getUnitConversion(item);
+                const stock = parseFloat(item.stock) || 0;
+                const unitPrice = parseFloat(item.unitPrice) || 0;
+                totalStockValue += (stock / factor) * unitPrice;
+
+                const recipeEntry = activeMenu.recipe.find(r => r.ingId === item.id);
+                const qtyPerDish = recipeEntry ? (parseFloat(recipeEntry.qty) || 0) : 0;
+
+                if (qtyPerDish > 0) {
+                    const possible = Math.floor(stock / qtyPerDish);
+                    if (possible <= 5) {
+                        lowStockItemsCount++;
+                    }
+                    if (possible < maxServings) {
+                        maxServings = possible;
+                        limitingIngName = item.name;
+                    }
+                } else if (stock <= 0) {
+                    lowStockItemsCount++;
+                }
+            });
+
+            const heroMaxEl = document.getElementById('hero-max-servings');
+            const heroLimitEl = document.getElementById('hero-limiting-ing');
+            const stockMaxEl = document.getElementById('stock-page-max-servings');
+            const stockValEl = document.getElementById('stock-page-total-value');
+            const stockLowEl = document.getElementById('stock-page-low-count');
+            const navBadgeEl = document.getElementById('nav-low-stock-badge');
+
+            if (heroMaxEl && heroLimitEl) {
+                if (activeMenu.recipe.length === 0 || maxServings === Infinity) {
+                    heroMaxEl.textContent = 'ไม่จำกัด';
+                    heroLimitEl.textContent = '';
+                } else {
+                    heroMaxEl.textContent = `${maxServings.toLocaleString()} จาน`;
+                    heroMaxEl.className = `font-display font-bold text-base sm:text-lg ${maxServings === 0 ? 'text-chili-600' : maxServings <= 5 ? 'text-amber-600' : 'text-emerald-700'}`;
+                    heroLimitEl.textContent = limitingIngName ? `(จำกัดโดย: ${limitingIngName})` : '';
+                }
+            }
+
+            if (stockMaxEl) {
+                stockMaxEl.textContent = (activeMenu.recipe.length === 0 || maxServings === Infinity) ? 'ไม่จำกัด' : `${maxServings.toLocaleString()} จาน`;
+            }
+            if (stockValEl) {
+                stockValEl.textContent = `฿${totalStockValue.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+            if (stockLowEl) {
+                stockLowEl.textContent = `${lowStockItemsCount} รายการ`;
+            }
+            if (navBadgeEl) {
+                if (lowStockItemsCount > 0) {
+                    navBadgeEl.textContent = lowStockItemsCount;
+                    navBadgeEl.classList.remove('hidden');
+                } else {
+                    navBadgeEl.classList.add('hidden');
+                }
+            }
+
+            // ตรวจสอบความเพียงพอของสต็อกสำหรับ batchServings
+            const batchStockAlert = document.getElementById('batch-stock-alert');
+            const batchStockMsg = document.getElementById('batch-stock-msg');
+            const deductBtn = document.getElementById('deduct-stock-btn');
+
+            let hasShortage = false;
+            let shortageNames = [];
+            activeMenu.recipe.forEach(r => {
+                const stockObj = stockItems.find(s => s.id === r.ingId);
+                if (stockObj) {
+                    const required = (parseFloat(r.qty) || 0) * batchServings;
+                    const available = parseFloat(stockObj.stock) || 0;
+                    if (required > available) {
+                        hasShortage = true;
+                        shortageNames.push(stockObj.name);
+                    }
+                }
+            });
+
+            if (batchStockAlert && batchStockMsg && deductBtn) {
+                if (hasShortage) {
+                    batchStockAlert.classList.remove('hidden');
+                    batchStockMsg.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span>วัตถุดิบไม่พอผลิต ${batchServings} จาน (ขาด: ${shortageNames.join(', ')})</span>`;
+                    deductBtn.disabled = true;
+                    deductBtn.className = 'px-4 py-2 rounded-xl bg-gray-300 text-gray-500 text-xs font-display font-bold cursor-not-allowed transition-all';
+                } else {
+                    batchStockAlert.classList.remove('hidden');
+                    batchStockMsg.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span class="text-emerald-700">สต็อกเพียงพอสำหรับผลิต ${batchServings} จาน สามารถกดตัดสต็อกได้</span>`;
+                    deductBtn.disabled = false;
+                    deductBtn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-display font-bold shadow-sm transition-all active:scale-95';
+                }
+            }
+
+            const batchTotalCost = totalCostPerDish * batchServings;
+            const batchTotalEl = document.getElementById('batch-total-cost');
+            if (batchTotalEl) {
+                batchTotalEl.textContent = `฿${batchTotalCost.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+
+            const suggested50 = totalCostPerDish * 2;
+            const sug50El = document.getElementById('suggested-price-50');
+            if (sug50El) {
+                sug50El.textContent = `฿${suggested50.toFixed(2)}`;
+            }
+
+            const simInput = document.getElementById('sim-price-input');
+            const simPrice = simInput ? parseFloat(simInput.value) || 0 : 65;
+            const profitPerDish = simPrice - totalCostPerDish;
+            const profitMargin = simPrice > 0 ? (profitPerDish / simPrice) * 100 : 0;
+
+            const simProfitEl = document.getElementById('sim-profit-per-dish');
+            const simMarginEl = document.getElementById('sim-profit-margin');
+            const simSaleEl = document.getElementById('sim-sale-price');
+
+            if (simProfitEl) simProfitEl.textContent = `฿${profitPerDish.toFixed(2)}`;
+            if (simMarginEl) simMarginEl.textContent = `${profitMargin.toFixed(1)}%`;
+            if (simSaleEl) simSaleEl.textContent = `฿${simPrice.toFixed(2)}`;
+        }
+
+        // โมดอลเพิ่มวัตถุดิบ (รองรับทั้งเลือกจากคลังที่มีอยู่ และสร้างวัตถุดิบใหม่)
+        function setAddIngMode(mode) {
+            const btnExisting = document.getElementById('add-ing-mode-existing');
+            const btnNew = document.getElementById('add-ing-mode-new');
+            const formExisting = document.getElementById('form-existing-ing');
+            const formNew = document.getElementById('form-new-ing');
+
+            if (mode === 'existing') {
+                btnExisting.className = 'flex-1 py-1.5 rounded-lg text-xs font-display font-semibold bg-white text-gray-900 shadow-2xs transition-all';
+                btnNew.className = 'flex-1 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-600 hover:text-gray-900 transition-all';
+                formExisting.classList.remove('hidden');
+                formNew.classList.add('hidden');
+            } else {
+                btnNew.className = 'flex-1 py-1.5 rounded-lg text-xs font-display font-semibold bg-white text-papaya-600 shadow-2xs transition-all';
+                btnExisting.className = 'flex-1 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-600 hover:text-gray-900 transition-all';
+                formNew.classList.remove('hidden');
+                formExisting.classList.add('hidden');
+            }
+        }
+
+        function openAddModal() {
+            const activeMenu = getCurrentMenu();
+            const selectEl = document.getElementById('existing-ing-select');
+            if (selectEl && activeMenu) {
+                const available = stockItems.filter(s => !activeMenu.recipe.some(r => r.ingId === s.id));
+                if (available.length > 0 && currentPage === 'recipe') {
+                    selectEl.innerHTML = available.map(s => `<option value="${s.id}">${s.emoji || '🥗'} ${escapeHtml(s.name)} (${escapeHtml(s.unit)})</option>`).join('');
+                    setAddIngMode('existing');
+                } else {
+                    selectEl.innerHTML = `<option value="" disabled selected>เลือกวัตถุดิบทั้งหมดในคลังเข้าสูตรนี้แล้ว</option>`;
+                    setAddIngMode('new');
+                }
+            }
+            document.getElementById('add-modal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        function handleAddExistingIngredient(e) {
+            e.preventDefault();
+            const activeMenu = getCurrentMenu();
+            const ingId = parseInt(document.getElementById('existing-ing-select').value);
+            const qty = parseFloat(document.getElementById('existing-ing-qty').value) || 0;
+
+            if (!activeMenu || isNaN(ingId)) return;
+
+            if (!activeMenu.recipe.some(r => r.ingId === ingId)) {
+                activeMenu.recipe.push({ ingId, qty });
+            }
+
+            closeAddModal();
+            renderIngredients();
+            renderStockPage();
+            calculateAll();
+        }
+
+        function handleAddIngredient(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-name').value.trim();
+            const qty = parseFloat(document.getElementById('new-qty').value) || 0;
+            const unit = document.getElementById('new-unit').value.trim() || 'กรัม';
+            const unitPrice = parseFloat(document.getElementById('new-price').value) || 0;
+            const stock = parseFloat(document.getElementById('new-stock').value) || 0;
+            const emoji = document.getElementById('new-emoji').value.trim() || '🥜';
+            const bg = document.getElementById('new-bg').value;
+            const detail = document.getElementById('new-detail').value.trim();
+
+            if (!name) return;
+
+            const isGram = unit === 'กรัม';
+            const newId = nextIngId++;
+            stockItems.push({
+                id: newId,
+                name,
+                detail,
+                unit,
+                priceUnit: isGram ? 'กก.' : unit,
+                unitFactor: isGram ? 1000 : 1,
+                unitPrice,
+                stock,
+                emoji,
+                bg
+            });
+
+            // เพิ่มเข้าสูตรเมนูที่กำลังเปิดอยู่ด้วย (ถ้าอยู่ในหน้าสูตร)
+            const activeMenu = getCurrentMenu();
+            if (activeMenu && currentPage === 'recipe') {
+                activeMenu.recipe.push({ ingId: newId, qty });
+            }
+
+            e.target.reset();
+            closeAddModal();
+            renderIngredients();
+            renderStockPage();
+            calculateAll();
+        }
+
+        function openResetModal() {
+            document.getElementById('reset-modal').classList.remove('hidden');
+        }
+        function closeResetModal() {
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+        function executeReset() {
+            stockItems = JSON.parse(JSON.stringify(DEFAULT_STOCK_ITEMS));
+            menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
+            currentMenuId = menus[0].id;
+            batchServings = 1;
+            const batchInput = document.getElementById('batch-servings-input');
+            if (batchInput) batchInput.value = 1;
+            closeResetModal();
+            renderMenuSelector();
+            renderIngredients();
+            renderStockPage();
+            calculateAll();
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
